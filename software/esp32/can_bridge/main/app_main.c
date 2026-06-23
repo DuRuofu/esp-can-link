@@ -18,6 +18,7 @@
 #include "usb_cdc.h"
 #include "protocol.h"
 #include "command_handler.h"
+#include "led_indicator.h"
 
 static const char *TAG = "bridge";
 
@@ -25,6 +26,7 @@ static const char *TAG = "bridge";
 #define CAN_TX_GPIO      GPIO_NUM_4
 #define CAN_RX_GPIO      GPIO_NUM_5
 #define CAN_STANDBY_GPIO GPIO_NUM_6   /* TJA1051 S pin, LOW=normal, HIGH=standby */
+#define LED_GPIO         GPIO_NUM_21  /* WS2812 status LED */
 
 /* ---- Forward declarations ---- */
 static void usb_rx_callback(const uint8_t *data, size_t len, void *user_ctx);
@@ -138,19 +140,17 @@ static void status_task_fn(void *arg)
     ESP_LOGI(TAG, "Status task started");
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(30000));  /* every 30 seconds */
+        vTaskDelay(pdMS_TO_TICKS(2000));  /* every 2 seconds */
 
         can_status_t status;
         if (can_driver_get_status(&status) == ESP_OK) {
-            const char *state_name;
+            led_state_t led_state;
             switch (status.state) {
-            case CAN_STATE_RUNNING: state_name = "running"; break;
-            case CAN_STATE_BUS_OFF: state_name = "bus_off"; break;
-            default:                state_name = "stopped"; break;
+            case CAN_STATE_RUNNING: led_state = LED_STATE_RUNNING; break;
+            case CAN_STATE_BUS_OFF: led_state = LED_STATE_ERROR;   break;
+            default:                led_state = LED_STATE_READY;    break;
             }
-            ESP_LOGI(TAG, "CAN: %s | TX_ERR=%u RX_ERR=%u | TX_QUEUE=%lu",
-                     state_name, status.tx_errors, status.rx_errors,
-                     (unsigned long)status.tx_queue_remaining);
+            led_indicator_set_state(led_state);
         }
     }
 }
@@ -173,9 +173,13 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    /* Initialize status LED */
+    ESP_ERROR_CHECK(led_indicator_init(LED_GPIO));
+
     /* Initialize CAN driver (stopped by default per spec) */
     ESP_ERROR_CHECK(can_driver_init(CAN_TX_GPIO, CAN_RX_GPIO, 500000, CAN_STANDBY_GPIO));
     can_driver_set_rx_callback(can_rx_callback, NULL);
+    led_indicator_set_state(LED_STATE_READY);  /* blue = ready */
 
     /* Initialize USB CDC */
     ESP_ERROR_CHECK(usb_cdc_init());
