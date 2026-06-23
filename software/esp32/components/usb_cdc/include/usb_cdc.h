@@ -64,6 +64,11 @@ esp_err_t usb_cdc_write(const uint8_t *data, size_t len);
  */
 esp_err_t usb_cdc_write_str(const char *str);
 
+/**
+ * @brief Start the internal RX processing task. Call from app_main.
+ */
+void usb_cdc_start_rx_task(void);
+
 #ifdef __cplusplus
 }
 #endif

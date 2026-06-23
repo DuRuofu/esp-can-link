@@ -1,5 +1,6 @@
 """Log Manager - 统一日志格式管理，支持彩色输出"""
 from datetime import datetime
+from html import escape
 
 
 class LogManager:
@@ -27,9 +28,20 @@ class LogManager:
 
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
         color = self.COLOR_MAP.get(msg_type, "black")
-        formatted_msg = f'<span style="color: {color}">[{timestamp}] [{msg_type}] {message}</span>'
+        formatted_msg = f'<span style="color: {color}">[{timestamp}] [{msg_type}] {escape(message)}</span>'
 
         self._text_browser.append(formatted_msg)
+
+        # Trim old lines to prevent memory bloat
+        doc = self._text_browser.document()
+        max_blocks = 5000
+        if doc.blockCount() > max_blocks:
+            cursor = self._text_browser.textCursor()
+            cursor.movePosition(cursor.MoveOperation.Start)
+            cursor.select(cursor.SelectionType.BlockUnderCursor)
+            cursor.removeSelectedText()
+            cursor.deleteChar()
+
         # 自动滚动到底部
         cursor = self._text_browser.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)

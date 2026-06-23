@@ -16,14 +16,33 @@
 
 static char s_line_buf[LINE_BUF_SIZE];
 static int s_line_pos = 0;
+static bool s_skip_lf = false;  /* handle \r\n line endings */
 
 void protocol_feed_byte(char c)
 {
-    if (c == '\n' || c == '\r') {
-        /* End of line */
+    /* Ignore \n immediately following \r (Windows \r\n) */
+    if (s_skip_lf) {
+        s_skip_lf = false;
+        if (c == '\n') {
+            return;  /* skip the LF after CR */
+        }
+    }
+
+    if (c == '\r') {
+        /* End of line via CR - mark to skip following LF */
+        s_skip_lf = true;
         if (s_line_pos > 0) {
             s_line_buf[s_line_pos] = '\0';
             s_line_pos++;  /* signal that a line is ready (pos > 0 until consumed) */
+        }
+        return;
+    }
+
+    if (c == '\n') {
+        /* Standalone LF - end of line */
+        if (s_line_pos > 0) {
+            s_line_buf[s_line_pos] = '\0';
+            s_line_pos++;
         }
         return;
     }
@@ -248,7 +267,8 @@ bool protocol_parse(const char *line, parsed_cmd_t *cmd)
     } else if (strcmp(cmd_str, "send") == 0) {
         cmd->cmd = CMD_SEND;
         val = find_key(line, "id");
-        if (val) parse_uint32(skip_space(val), &cmd->send.id);
+        if (!val) { cmd->cmd = CMD_UNKNOWN; return true; }
+        parse_uint32(skip_space(val), &cmd->send.id);
         val = find_key(line, "ext");
         if (val) {
             val = skip_space(val);
@@ -257,7 +277,7 @@ bool protocol_parse(const char *line, parsed_cmd_t *cmd)
         val = find_key(line, "data");
         if (val) {
             int count = parse_uint_array(skip_space(val), cmd->send.data, 8);
-            cmd->send.dlc = (count > 0 && count <= 8) ? (uint8_t)count : 0;
+            cmd->send.dlc = (count >= 0 && count <= 8) ? (uint8_t)count : 0;
         }
     } else if (strcmp(cmd_str, "periodic_start") == 0) {
         cmd->cmd = CMD_PERIODIC_START;

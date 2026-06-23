@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QTextBrowser, QPushButton
 )
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QFontDatabase
 
 
 class LogPanel(QWidget):
@@ -21,7 +21,9 @@ class LogPanel(QWidget):
 
         # 日志显示区域
         self.log_browser = QTextBrowser()
-        self.log_browser.setFont(QFont("Consolas", 11))
+        fixed_font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        fixed_font.setPointSize(11)
+        self.log_browser.setFont(fixed_font)
         vbox.addWidget(self.log_browser)
 
         # 控制按钮

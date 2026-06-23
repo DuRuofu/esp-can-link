@@ -27,10 +27,12 @@ def main():
     window.show()
 
     # 设置数据收发tab的发送按钮
-    data_tab = window.tab_widget.widget(0)
-    data_tab.btn_send.clicked.connect(lambda: _on_send(window, data_tab))
-    data_tab.btn_clear_send.clicked.connect(data_tab.clear_send)
-    data_tab.btn_clear_recv.clicked.connect(data_tab.clear_recv)
+    from ui.tabs.data_exchange_tab import DataExchangeTab
+    data_tab = window.findChild(DataExchangeTab)
+    if data_tab:
+        data_tab.btn_send.clicked.connect(lambda: _on_send(window, data_tab))
+        data_tab.btn_clear_send.clicked.connect(data_tab.clear_send)
+        data_tab.btn_clear_recv.clicked.connect(data_tab.clear_recv)
 
     sys.exit(app.exec())
 

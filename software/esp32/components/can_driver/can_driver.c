@@ -23,6 +23,9 @@ static twai_node_handle_t s_node_handle = NULL;
 static bool s_is_running = false;
 static SemaphoreHandle_t s_tx_sem = NULL;
 static volatile bool s_needs_recovery = false;
+static gpio_num_t s_tx_pin = GPIO_NUM_4;
+static gpio_num_t s_rx_pin = GPIO_NUM_5;
+static uint32_t s_bitrate = 500000;
 
 /* RX callback */
 static can_rx_callback_t s_rx_cb = NULL;
@@ -91,9 +94,16 @@ static IRAM_ATTR bool twai_state_cb(twai_node_handle_t handle,
 
 esp_err_t can_driver_init(gpio_num_t tx_pin, gpio_num_t rx_pin, uint32_t bitrate)
 {
+    /* Save configuration for potential reinit (e.g. set_bitrate) */
+    s_tx_pin = tx_pin;
+    s_rx_pin = rx_pin;
+    s_bitrate = bitrate;
+
     if (s_node_handle != NULL) {
-        ESP_LOGW(TAG, "Driver already initialized, stopping first");
+        ESP_LOGW(TAG, "Driver already initialized, cleaning up old node");
         can_driver_stop();
+        twai_node_delete(s_node_handle);
+        s_node_handle = NULL;
     }
 
     /* Create sync primitives */
@@ -190,10 +200,8 @@ esp_err_t can_driver_set_bitrate(uint32_t bitrate)
         s_node_handle = NULL;
     }
 
-    /* Read current GPIO config from old? We stored it... but for simplicity,
-     * reconstruct with default pins. Better approach: store init config. */
-    /* For now, re-init with default GPIO4/GPIO5 */
-    esp_err_t ret = can_driver_init(GPIO_NUM_4, GPIO_NUM_5, bitrate);
+    /* Re-init with saved GPIO pins */
+    esp_err_t ret = can_driver_init(s_tx_pin, s_rx_pin, bitrate);
     if (ret != ESP_OK) {
         return ret;
     }
@@ -335,14 +343,6 @@ static void can_rx_task(void *arg)
             can_driver_recover();
         }
     }
-}
-
-/* Auto-start the RX task from app_main */
-__attribute__((constructor))
-static void _can_driver_auto_init(void)
-{
-    /* RX task will be started by can_bridge app_main.
-     * This is safe because constructors run before app_main. */
 }
 
 /* Public function to start RX task (call from app_main) */

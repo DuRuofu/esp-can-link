@@ -137,6 +137,11 @@ esp_err_t can_driver_set_filter(uint32_t id, uint32_t mask, bool ext);
  */
 esp_err_t can_driver_recover(void);
 
+/**
+ * @brief Start the internal RX processing task. Call from app_main.
+ */
+void can_driver_start_rx_task(void);
+
 #ifdef __cplusplus
 }
 #endif

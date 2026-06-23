@@ -13,6 +13,12 @@ extern "C" {
 #endif
 
 /**
+ * @brief Initialize command handler (creates internal mutex).
+ * Call once from app_main before any other handler functions.
+ */
+void command_handler_init(void);
+
+/**
  * @brief Process a parsed command and produce a JSON response.
  *
  * Handles all 9 protocol commands: can_start, can_stop, set_bitrate,

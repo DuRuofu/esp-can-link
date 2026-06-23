@@ -180,6 +180,9 @@ void app_main(void)
     ESP_ERROR_CHECK(usb_cdc_init());
     usb_cdc_set_rx_callback(usb_rx_callback, NULL);
 
+    /* Initialize command handler */
+    command_handler_init();
+
     /* Create USB RX queue */
     s_usb_rx_queue = xQueueCreate(USB_RX_QUEUE_DEPTH, sizeof(usb_rx_item_t));
     assert(s_usb_rx_queue != NULL);
@@ -190,8 +193,6 @@ void app_main(void)
     xTaskCreate(status_task_fn, "status_rpt", 2048, NULL, 1, NULL);
 
     /* Start component-internal RX tasks */
-    extern void usb_cdc_start_rx_task(void);
-    extern void can_driver_start_rx_task(void);
     usb_cdc_start_rx_task();
     can_driver_start_rx_task();
 

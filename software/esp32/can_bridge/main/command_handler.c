@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "esp_log.h"
 #include "can_driver.h"
 #include "protocol.h"
@@ -28,6 +29,7 @@ typedef struct {
 } periodic_frame_t;
 
 static periodic_frame_t s_periodic_frames[MAX_PERIODIC_FRAMES];
+static SemaphoreHandle_t s_periodic_mutex = NULL;
 static uint32_t s_tick_ms = 0;
 
 int command_handler_process(const parsed_cmd_t *cmd, char *response, size_t max_len)
@@ -91,6 +93,8 @@ int command_handler_process(const parsed_cmd_t *cmd, char *response, size_t max_
         break;
 
     case CMD_PERIODIC_START: {
+        if (!s_periodic_mutex) break;
+        xSemaphoreTake(s_periodic_mutex, portMAX_DELAY);
         /* Find free slot or reuse same ID */
         int slot = -1;
         for (int i = 0; i < MAX_PERIODIC_FRAMES; i++) {
@@ -122,10 +126,13 @@ int command_handler_process(const parsed_cmd_t *cmd, char *response, size_t max_
             ESP_LOGI(TAG, "Periodic frame started: ID=0x%lX, period=%lums, slot=%d",
                      cmd->periodic.id, cmd->periodic.period_ms, slot);
         }
+        xSemaphoreGive(s_periodic_mutex);
         break;
     }
 
     case CMD_PERIODIC_STOP:
+        if (!s_periodic_mutex) break;
+        xSemaphoreTake(s_periodic_mutex, portMAX_DELAY);
         for (int i = 0; i < MAX_PERIODIC_FRAMES; i++) {
             if (s_periodic_frames[i].active &&
                 s_periodic_frames[i].id == cmd->periodic.id) {
@@ -133,6 +140,7 @@ int command_handler_process(const parsed_cmd_t *cmd, char *response, size_t max_
                 ESP_LOGI(TAG, "Periodic frame stopped: ID=0x%lX", cmd->periodic.id);
             }
         }
+        xSemaphoreGive(s_periodic_mutex);
         break;
 
     case CMD_GET_STATUS:
@@ -152,18 +160,17 @@ int command_handler_process(const parsed_cmd_t *cmd, char *response, size_t max_
         return 0;  /* already handled above */
     }
 
-    const char *cmd_names[] = {
-        [CMD_CAN_START] = "can_start",
-        [CMD_CAN_STOP] = "can_stop",
-        [CMD_SET_BITRATE] = "set_bitrate",
-        [CMD_SET_FILTER] = "set_filter",
-        [CMD_SEND] = "send",
-        [CMD_PERIODIC_START] = "periodic_start",
-        [CMD_PERIODIC_STOP] = "periodic_stop",
-    };
-
-    const char *cmd_name = (cmd->cmd < sizeof(cmd_names)/sizeof(cmd_names[0]))
-                           ? cmd_names[cmd->cmd] : "unknown";
+    const char *cmd_name = "unknown";
+    switch (cmd->cmd) {
+    case CMD_CAN_START:      cmd_name = "can_start"; break;
+    case CMD_CAN_STOP:       cmd_name = "can_stop"; break;
+    case CMD_SET_BITRATE:    cmd_name = "set_bitrate"; break;
+    case CMD_SET_FILTER:     cmd_name = "set_filter"; break;
+    case CMD_SEND:           cmd_name = "send"; break;
+    case CMD_PERIODIC_START: cmd_name = "periodic_start"; break;
+    case CMD_PERIODIC_STOP:  cmd_name = "periodic_stop"; break;
+    default: break;
+    }
 
     return protocol_build_response(cmd_name, ok, errmsg, response, max_len);
 }
@@ -198,6 +205,9 @@ void command_handler_periodic_tick(void)
 {
     s_tick_ms += 10;  /* assumes called every 10ms */
 
+    if (!s_periodic_mutex) return;
+    if (xSemaphoreTake(s_periodic_mutex, 0) != pdTRUE) return;  /* non-blocking */
+
     for (int i = 0; i < MAX_PERIODIC_FRAMES; i++) {
         if (!s_periodic_frames[i].active) continue;
 
@@ -213,4 +223,12 @@ void command_handler_periodic_tick(void)
             }
         }
     }
+
+    xSemaphoreGive(s_periodic_mutex);
+}
+
+/* Initialize mutex - call once from app_main */
+void command_handler_init(void)
+{
+    s_periodic_mutex = xSemaphoreCreateMutex();
 }

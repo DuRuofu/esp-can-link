@@ -1,6 +1,6 @@
 """Serial Manager - 串口通信管理，线程安全"""
 import threading
-from PySide6.QtCore import QObject, Signal, QThread
+from PySide6.QtCore import QObject, Signal, QThread, QMutex
 
 
 class SerialWorker(QObject):
@@ -37,15 +37,17 @@ class SerialWorker(QObject):
 
     def close_serial(self):
         """关闭串口"""
-        self.is_running = False
-        if self.serial_port and self.serial_port.is_open:
-            self.serial_port.close()
+        with self._lock:
+            self.is_running = False
+            if self.serial_port and self.serial_port.is_open:
+                self.serial_port.close()
         self.disconnected.emit()
 
     def send_data(self, data):
         """发送数据"""
-        if not self.is_running or not self.serial_port or not self.serial_port.is_open:
-            return False
+        with self._lock:
+            if not self.is_running or not self.serial_port or not self.serial_port.is_open:
+                return False
         try:
             with self._lock:
                 self.serial_port.write(data.encode('utf-8'))
@@ -57,14 +59,16 @@ class SerialWorker(QObject):
 
     def read_data(self):
         """读取串口数据（由定时器调用）"""
-        if not self.is_running or not self.serial_port or not self.serial_port.is_open:
-            return
+        with self._lock:
+            if not self.is_running or not self.serial_port or not self.serial_port.is_open:
+                return
         try:
-            if self.serial_port.in_waiting > 0:
-                data = self.serial_port.read(self.serial_port.in_waiting)
-                if data:
-                    decoded = data.decode('utf-8', errors='ignore')
-                    self.data_received.emit(decoded)
+            with self._lock:
+                if self.serial_port.in_waiting > 0:
+                    data = self.serial_port.read(self.serial_port.in_waiting)
+            if data:
+                decoded = data.decode('utf-8', errors='ignore')
+                self.data_received.emit(decoded)
         except Exception as e:
             self.error_occurred.emit(f"数据读取失败: {str(e)}")
 
@@ -123,7 +127,19 @@ class SerialManager(QObject):
             self._timer.stop()
         if self._thread:
             self._thread.quit()
-            self._thread.wait()
+            if not self._thread.wait(3000):
+                self._thread.terminate()
+                self._thread.wait(1000)
+        # Clean up Qt objects to prevent leaks on reconnect
+        if self._timer:
+            self._timer.deleteLater()
+            self._timer = None
+        if self._worker:
+            self._worker.deleteLater()
+            self._worker = None
+        if self._thread:
+            self._thread.deleteLater()
+            self._thread = None
         self._is_connected = False
 
     def send(self, data):

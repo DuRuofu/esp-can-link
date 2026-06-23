@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QFontDatabase, QColor
 
 from core.can_protocol import LineBuffer, CanFrame, parse_message
 
@@ -79,7 +79,9 @@ class CanMonitorTab(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
-        self.table.setFont(QFont("Consolas", 10))
+        fixed_font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        fixed_font.setPointSize(10)
+        self.table.setFont(fixed_font)
         self.table.verticalHeader().setVisible(False)
         layout.addWidget(self.table)
 
@@ -138,8 +140,11 @@ class CanMonitorTab(QWidget):
         data_str = " ".join(f"{b:02X}" for b in frame.data[:frame.dlc])
         self._set_item(row, 5, data_str)
 
-        # Auto-scroll
-        self.table.scrollToBottom()
+        # Auto-scroll only if user is at the bottom (allow browsing history)
+        vbar = self.table.verticalScrollBar()
+        at_bottom = vbar.value() >= vbar.maximum() - 10
+        if at_bottom:
+            self.table.scrollToBottom()
 
         # Update status
         self.lbl_status.setText(
