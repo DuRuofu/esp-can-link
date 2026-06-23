@@ -140,17 +140,22 @@ static void status_task_fn(void *arg)
     ESP_LOGI(TAG, "Status task started");
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(2000));  /* every 2 seconds */
+        vTaskDelay(pdMS_TO_TICKS(2000));
 
         can_status_t status;
         if (can_driver_get_status(&status) == ESP_OK) {
             led_state_t led_state;
+            const char *led_name;
             switch (status.state) {
-            case CAN_STATE_RUNNING: led_state = LED_STATE_RUNNING; break;
-            case CAN_STATE_BUS_OFF: led_state = LED_STATE_ERROR;   break;
-            default:                led_state = LED_STATE_READY;    break;
+            case CAN_STATE_RUNNING: led_state = LED_STATE_RUNNING; led_name = "GREEN"; break;
+            case CAN_STATE_BUS_OFF: led_state = LED_STATE_ERROR;   led_name = "RED";   break;
+            default:                led_state = LED_STATE_READY;    led_name = "BLUE";  break;
             }
+            ESP_LOGI(TAG, "LED: %s (CAN state=%d, tx_err=%u, rx_err=%u)",
+                     led_name, status.state, status.tx_errors, status.rx_errors);
             led_indicator_set_state(led_state);
+        } else {
+            ESP_LOGW(TAG, "LED: get_status failed");
         }
     }
 }

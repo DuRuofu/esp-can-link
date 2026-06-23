@@ -4,26 +4,34 @@
 
 开放、可编程、低成本，替代封闭的厂商 USB-CAN 模块。通过 USB CDC 虚拟串口或 Wi-Fi 控制 CAN 总线，使用可读的 JSON 命令协议，无需专用上位机。
 
-![esp-can-link 系统全景](img.png)
+![esp-can-link 系统全景](attachments/img.png)
 
 ---
 
 ## 硬件
 
-| 模块 | 型号 |
-|------|------|
-| 主控 | ESP32-S3 |
-| CAN 收发器 | TJA1051T 等 |
-| USB | USB OTG（DP: GPIO20, DM: GPIO19） |
-| 无线 | Wi-Fi 2.4 GHz（AP / STA） |
+| 模块 | 型号 | 购买 |
+|------|------|------|
+| 主控 | [ESP32-S3-Zero](https://www.waveshare.net/shop/ESP32-S3-Zero.htm)（板载 WS2812） | 微雪 |
+| CAN 模块 | SN65HVD230 / TJA1051T | [淘宝](https://item.taobao.com/item.htm?id=624503860089) |
+
+<table><tr>
+<td><img src="attachments/ESP32-S3-Zero-1.jpg" width="280"></td>
+<td><img src="attachments/can模块.webp" width="280"></td>
+</tr></table>
+
+
+### 引脚连接
 
 ```
-ESP32-S3 CAN_TX (GPIO4)  →  TJA1051 TXD
-ESP32-S3 CAN_RX (GPIO5)  ←  TJA1051 RXD
-ESP32-S3 GPIO6           →  TJA1051 S   (LOW=正常, HIGH=静音)
-ESP32-S3 GPIO21          →  WS2812 LED  (状态指示)
-TJA1051 CANH/CANL        →  CAN 总线（需 120Ω 终端电阻）
+ESP32-S3 CAN_TX (GPIO4)  →  CAN 模块 TXD
+ESP32-S3 CAN_RX (GPIO5)  ←  CAN 模块 RXD
+ESP32-S3 GPIO6           →  CAN 模块 S   (LOW=正常, HIGH=静音)
+ESP32-S3 GPIO21          →  WS2812 LED   (状态指示)
+USB OTG (GPIO20/19)      →  USB-C 数据线  (CDC 虚拟串口)
 ```
+
+> CAN 总线两端需各接 120Ω 终端电阻。部分模块自带跳线帽控制的终端电阻。
 
 CAN 2.0A / 2.0B，11/29-bit ID，0~8 字节数据，波特率 125k/250k/500k/1M。不支持 CAN FD。
 

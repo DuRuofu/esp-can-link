@@ -10,6 +10,7 @@ from .tab_widget import TabWidget
 from .tabs.data_exchange_tab import DataExchangeTab
 from .tabs.can_monitor_tab import CanMonitorTab
 from .tabs.can_send_tab import CanSendTab
+from core.can_protocol import build_can_start, build_can_stop
 
 
 class MainWindow(QWidget):
@@ -110,10 +111,12 @@ class MainWindow(QWidget):
         self.serial_panel.set_connected_state(True)
         self.can_send_tab.set_connected(True)
         self._log_manager.info("串口已连接")
+        self._serial_manager.send(build_can_start())
 
     def _on_serial_disconnected(self):
         self.serial_panel.set_connected_state(False)
         self.can_send_tab.set_connected(False)
+        self._serial_manager.send(build_can_stop())
         self._log_manager.info("串口已断开")
 
     def _on_serial_error(self, msg):

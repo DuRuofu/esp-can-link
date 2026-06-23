@@ -13,7 +13,7 @@ from PySide6.QtGui import QRegularExpressionValidator, QColor
 
 from core.can_protocol import (
     build_send, build_periodic_start, build_periodic_stop,
-    build_set_bitrate, build_can_start, build_can_stop,
+    build_set_bitrate,
     build_get_status, build_get_info,
     LineBuffer, parse_message, CanStatus, CommandResponse, DeviceInfo,
 )
@@ -54,14 +54,6 @@ class CanSendTab(QWidget):
         self.btn_set_bitrate = QPushButton("设置波特率")
         self.btn_set_bitrate.clicked.connect(self._on_set_bitrate)
         ctrl_layout.addWidget(self.btn_set_bitrate)
-
-        self.btn_can_start = QPushButton("CAN Start")
-        self.btn_can_start.clicked.connect(lambda: self._send_json(build_can_start()))
-        ctrl_layout.addWidget(self.btn_can_start)
-
-        self.btn_can_stop = QPushButton("CAN Stop")
-        self.btn_can_stop.clicked.connect(lambda: self._send_json(build_can_stop()))
-        ctrl_layout.addWidget(self.btn_can_stop)
 
         ctrl_layout.addStretch()
 
@@ -223,8 +215,6 @@ class CanSendTab(QWidget):
         self._is_connected = connected
         self.btn_send.setEnabled(connected)
         self.btn_add_to_list.setEnabled(connected)
-        self.btn_can_start.setEnabled(connected)
-        self.btn_can_stop.setEnabled(connected)
         self.btn_set_bitrate.setEnabled(connected)
         self.btn_get_status.setEnabled(connected)
         self.btn_get_info.setEnabled(connected)

@@ -8,7 +8,7 @@
  *   Green dim — CAN running
  *   Red dim — CAN bus-off / error
  *
- * WS2812 timing (GRB order, 800kHz):
+ * WS2812 timing (RGB order, 800kHz):
  *   0 code: 0.4us H + 0.85us L
  *   1 code: 0.8us H + 0.45us L
  *   RESET:  >50us low
@@ -33,15 +33,15 @@ static rmt_encoder_handle_t s_encoder = NULL;
 static bool s_initialized = false;
 
 /*
- * Build RMT symbols for one WS2812 pixel (GRB, 24 bits) + reset.
+ * Build RMT symbols for one WS2812 pixel (RGB, 24 bits) + reset.
  * Returns number of symbols written (always 25).
  */
-static int make_ws2812_symbols(const uint8_t grb[3], rmt_symbol_word_t *symbols)
+static int make_ws2812_symbols(const uint8_t rgb[3], rmt_symbol_word_t *symbols)
 {
     int idx = 0;
     for (int byte = 0; byte < 3; byte++) {
         for (int bit = 7; bit >= 0; bit--) {
-            if (grb[byte] & (1 << bit)) {
+            if (rgb[byte] & (1 << bit)) {
                 symbols[idx].duration0 = T1H;
                 symbols[idx].level0 = 1;
                 symbols[idx].duration1 = T1L;
@@ -99,9 +99,9 @@ esp_err_t led_indicator_set_state(led_state_t state)
     case LED_STATE_ERROR:   r = 20; g = 0;  b = 0;   break;
     }
 
-    uint8_t grb[3] = {g, r, b};
+    uint8_t rgb[3] = {r, g, b};
     rmt_symbol_word_t symbols[25];
-    int sym_count = make_ws2812_symbols(grb, symbols);
+    int sym_count = make_ws2812_symbols(rgb, symbols);
 
     rmt_transmit_config_t tx_conf = { .loop_count = 0 };
     esp_err_t ret = rmt_transmit(s_chan, s_encoder, symbols,
