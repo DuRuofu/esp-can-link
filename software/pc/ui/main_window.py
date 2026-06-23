@@ -23,7 +23,7 @@ class MainWindow(QWidget):
         self._connect_signals()
 
     def _setup_ui(self):
-        self.setWindowTitle("串口调试工具")
+        self.setWindowTitle("esp-can-link")
         self.setGeometry(100, 100, 1200, 800)
 
         main_layout = QHBoxLayout(self)
@@ -108,10 +108,12 @@ class MainWindow(QWidget):
 
     def _on_serial_connected(self):
         self.serial_panel.set_connected_state(True)
+        self.can_send_tab.set_connected(True)
         self._log_manager.info("串口已连接")
 
     def _on_serial_disconnected(self):
         self.serial_panel.set_connected_state(False)
+        self.can_send_tab.set_connected(False)
         self._log_manager.info("串口已断开")
 
     def _on_serial_error(self, msg):

@@ -7,8 +7,8 @@ from PySide6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QHeaderView, QCheckBox, QFileDialog,
     QAbstractItemView,
 )
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QFontDatabase, QColor
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFont, QFontDatabase
 
 from core.can_protocol import LineBuffer, CanFrame, parse_message
 
@@ -17,9 +17,6 @@ MAX_ROWS = 1000
 
 class CanMonitorTab(QWidget):
     """Tab displaying received CAN frames in a scrollable table."""
-
-    # Signal emitted when a CAN frame is received (for status bar etc.)
-    frame_received = Signal(object)
 
     def __init__(self):
         super().__init__()
@@ -54,7 +51,10 @@ class CanMonitorTab(QWidget):
         self.edit_filter = QLineEdit()
         self.edit_filter.setPlaceholderText("0x123 or 291 (空=全部)")
         self.edit_filter.setMaximumWidth(150)
-        self.edit_filter.textChanged.connect(self._on_filter_changed)
+        self.edit_filter.textChanged.connect(self._on_filter_text_changed)
+        self._filter_timer = QTimer()
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.timeout.connect(self._on_filter_changed)
         toolbar.addWidget(self.edit_filter)
 
         self.chk_hex = QCheckBox("Hex")
@@ -152,8 +152,6 @@ class CanMonitorTab(QWidget):
             f"最后: ID=0x{frame.id:X} DLC={frame.dlc}"
         )
 
-        self.frame_received.emit(frame)
-
     def _set_item(self, row: int, col: int, text: str):
         item = QTableWidgetItem(text)
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -184,7 +182,12 @@ class CanMonitorTab(QWidget):
                 f.write(",".join(cols) + "\n")
         self.lbl_status.setText(f"已保存到 {path}")
 
-    def _on_filter_changed(self, text: str):
+    def _on_filter_text_changed(self, _text: str):
+        """防抖：每次按键重置 300ms 定时器，停止输入后才真正执行"""
+        self._filter_timer.start(300)
+
+    def _on_filter_changed(self):
+        text = self.edit_filter.text()
         text = text.strip()
         if not text:
             self._filter_id = None

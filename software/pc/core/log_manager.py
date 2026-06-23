@@ -32,10 +32,10 @@ class LogManager:
 
         self._text_browser.append(formatted_msg)
 
-        # Trim old lines to prevent memory bloat
+        # Trim old lines to prevent memory bloat (batch remove)
         doc = self._text_browser.document()
         max_blocks = 5000
-        if doc.blockCount() > max_blocks:
+        while doc.blockCount() > max_blocks:
             cursor = self._text_browser.textCursor()
             cursor.movePosition(cursor.MoveOperation.Start)
             cursor.select(cursor.SelectionType.BlockUnderCursor)

@@ -62,6 +62,3 @@ class DataExchangeTab(QWidget):
 
     def clear_send(self):
         self.send_text.clear()
-
-    def append_send(self, text):
-        self.send_text.append(text)

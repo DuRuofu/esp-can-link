@@ -48,29 +48,28 @@ class SerialWorker(QObject):
         with self._lock:
             if not self.is_running or not self.serial_port or not self.serial_port.is_open:
                 return False
-        try:
-            with self._lock:
+            try:
                 self.serial_port.write(data.encode('utf-8'))
-            self.data_sent.emit(data.strip())
-            return True
-        except Exception as e:
-            self.error_occurred.emit(f"数据发送失败: {str(e)}")
-            return False
+            except Exception as e:
+                self.error_occurred.emit(f"数据发送失败: {str(e)}")
+                return False
+        self.data_sent.emit(data.strip())
+        return True
 
     def read_data(self):
         """读取串口数据（由定时器调用）"""
+        data = None
         with self._lock:
             if not self.is_running or not self.serial_port or not self.serial_port.is_open:
                 return
-        try:
-            with self._lock:
+            try:
                 if self.serial_port.in_waiting > 0:
                     data = self.serial_port.read(self.serial_port.in_waiting)
-            if data:
-                decoded = data.decode('utf-8', errors='ignore')
-                self.data_received.emit(decoded)
-        except Exception as e:
-            self.error_occurred.emit(f"数据读取失败: {str(e)}")
+            except Exception as e:
+                self.error_occurred.emit(f"数据读取失败: {str(e)}")
+        if data:
+            decoded = data.decode('utf-8', errors='ignore')
+            self.data_received.emit(decoded)
 
 
 class SerialManager(QObject):

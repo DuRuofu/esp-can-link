@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QLabel, QComboBox, QPushButton, QSizePolicy
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSettings
 
 
 class SerialPanel(QWidget):
@@ -62,3 +62,22 @@ class SerialPanel(QWidget):
         self.combo_baudrate.setEnabled(not connected)
         self.btn_refresh.setEnabled(not connected)
         self.btn_connect.setText("断开" if connected else "连接")
+
+    def save_settings(self):
+        """持久化当前配置到 QSettings"""
+        s = QSettings("esp-can-link", "SerialPort")
+        s.setValue("port", self.combo_ports.currentText())
+        s.setValue("baudrate", self.combo_baudrate.currentText())
+
+    def restore_settings(self):
+        """从 QSettings 恢复上次的配置"""
+        s = QSettings("esp-can-link", "SerialPort")
+        last_port = s.value("port", "")
+        last_baud = s.value("baudrate", "115200")
+        if last_port:
+            idx = self.combo_ports.findText(last_port)
+            if idx >= 0:
+                self.combo_ports.setCurrentIndex(idx)
+        idx = self.combo_baudrate.findText(last_baud)
+        if idx >= 0:
+            self.combo_baudrate.setCurrentIndex(idx)
