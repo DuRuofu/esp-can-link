@@ -80,6 +80,7 @@ int protocol_get_line(char *line, size_t max_len)
 void protocol_reset(void)
 {
     s_line_pos = 0;
+    s_skip_lf = false;
 }
 
 /* ---- Minimal JSON parser ---- */
@@ -259,8 +260,13 @@ bool protocol_parse(const char *line, parsed_cmd_t *cmd)
                 if (*val == '{') {
                     const char *id_val = find_key(val, "id");
                     const char *mask_val = find_key(val, "mask");
+                    const char *ext_val = find_key(val, "ext");
                     if (id_val) parse_uint32(skip_space(id_val), &cmd->set_filter.id);
                     if (mask_val) parse_uint32(skip_space(mask_val), &cmd->set_filter.mask);
+                    if (ext_val) {
+                        ext_val = skip_space(ext_val);
+                        cmd->set_filter.ext = (strncmp(ext_val, "true", 4) == 0);
+                    }
                 }
             }
         }
@@ -282,7 +288,8 @@ bool protocol_parse(const char *line, parsed_cmd_t *cmd)
     } else if (strcmp(cmd_str, "periodic_start") == 0) {
         cmd->cmd = CMD_PERIODIC_START;
         val = find_key(line, "id");
-        if (val) parse_uint32(skip_space(val), &cmd->periodic.id);
+        if (!val) { cmd->cmd = CMD_UNKNOWN; return true; }
+        parse_uint32(skip_space(val), &cmd->periodic.id);
         val = find_key(line, "ext");
         if (val) {
             val = skip_space(val);
@@ -291,13 +298,14 @@ bool protocol_parse(const char *line, parsed_cmd_t *cmd)
         val = find_key(line, "data");
         if (val) {
             int count = parse_uint_array(skip_space(val), cmd->periodic.data, 8);
-            cmd->periodic.dlc = (count > 0 && count <= 8) ? (uint8_t)count : 0;
+            cmd->periodic.dlc = (count >= 0 && count <= 8) ? (uint8_t)count : 0;
         }
         val = find_key(line, "period_ms");
-        if (val) {
+        if (!val) { cmd->cmd = CMD_UNKNOWN; return true; }
+        {
             uint32_t period;
             parse_uint32(skip_space(val), &period);
-            cmd->periodic.period_ms = period;
+            cmd->periodic.period_ms = (period > 0) ? period : 100;
         }
     } else if (strcmp(cmd_str, "periodic_stop") == 0) {
         cmd->cmd = CMD_PERIODIC_STOP;
@@ -334,13 +342,27 @@ int protocol_build_rx_frame(uint32_t id, bool ext, uint8_t dlc,
         "{\"type\":\"rx\",\"id\":%lu,\"ext\":%s,\"dlc\":%u,\"data\":[",
         (unsigned long)id, ext ? "true" : "false", dlc);
 
-    for (uint8_t i = 0; i < dlc && pos < (int)max_len - 1; i++) {
-        pos += snprintf(out + pos, max_len - pos, "%s%u",
-                        i > 0 ? "," : "", data ? data[i] : 0);
+    /* Guard against initial snprintf overflow */
+    if (pos < 0 || (size_t)pos >= max_len) {
+        out[max_len > 0 ? max_len - 1 : 0] = '\0';
+        return (int)(max_len - 1);
     }
 
-    pos += snprintf(out + pos, max_len - pos,
-        "],\"timestamp_ms\":%lu}\n", (unsigned long)timestamp_ms);
+    for (uint8_t i = 0; i < dlc; i++) {
+        int remaining = (int)max_len - pos;
+        if (remaining <= 1) break;  /* no room */
+        int added = snprintf(out + pos, (size_t)remaining, "%s%u",
+                             i > 0 ? "," : "", data ? data[i] : 0);
+        if (added < 0 || added >= remaining) break;
+        pos += added;
+    }
+
+    int remaining = (int)max_len - pos;
+    if (remaining > 1) {
+        int added = snprintf(out + pos, (size_t)remaining,
+            "],\"timestamp_ms\":%lu}\n", (unsigned long)timestamp_ms);
+        if (added > 0 && added < remaining) pos += added;
+    }
 
     return pos;
 }
