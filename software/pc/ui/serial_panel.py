@@ -66,13 +66,13 @@ class SerialPanel(QWidget):
 
     def save_settings(self):
         """持久化当前配置到 QSettings"""
-        s = QSettings("esp-can-link", "SerialPort")
+        s = QSettings("open-can-link", "SerialPort")
         s.setValue("port", self.combo_ports.currentText())
         s.setValue("baudrate", self.combo_baudrate.currentText())
 
     def restore_settings(self):
         """从 QSettings 恢复上次的配置"""
-        s = QSettings("esp-can-link", "SerialPort")
+        s = QSettings("open-can-link", "SerialPort")
         last_port = s.value("port", "")
         last_baud = s.value("baudrate", "115200")
         if last_port:

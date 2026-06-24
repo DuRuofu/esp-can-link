@@ -1,5 +1,5 @@
 /*
- * protocol.h - JSON command protocol for esp-can-link
+ * protocol.h - JSON command protocol for open-can-link
  *
  * Implements the line-delimited JSON protocol defined in docs/protocol.md.
  * Provides line buffering, command parsing, and response/event formatting.

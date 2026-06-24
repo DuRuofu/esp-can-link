@@ -1,5 +1,5 @@
 /*
- * can_driver.h - TWAI driver wrapper for esp-can-link
+ * can_driver.h - TWAI driver wrapper for open-can-link
  *
  * Provides a simplified API for CAN bus operations using the
  * ESP-IDF TWAI (Two-Wire Automotive Interface) controller.

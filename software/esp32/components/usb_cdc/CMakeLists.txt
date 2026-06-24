@@ -1,4 +1,4 @@
-# Component: usb_cdc - USB CDC ACM wrapper for esp-can-link
+# Component: usb_cdc - USB CDC ACM wrapper for open-can-link
 idf_component_register(
     SRCS "usb_cdc.c"
     REQUIRES espressif__esp_tinyusb

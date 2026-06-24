@@ -1,5 +1,5 @@
 /*
- * command_handler.h - JSON command processing for esp-can-link bridge
+ * command_handler.h - JSON command processing for open-can-link bridge
  */
 
 #pragma once

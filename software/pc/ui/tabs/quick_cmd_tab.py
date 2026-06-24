@@ -92,7 +92,7 @@ class QuickCmdTab(QWidget):
     # ── Persistence ──────────────────────────────────────
 
     def _save(self):
-        s = QSettings("esp-can-link", "QuickCmds")
+        s = QSettings("open-can-link", "QuickCmds")
         items = []
         for r in range(self.table.rowCount()):
             name = self.table.item(r, 0).text() if self.table.item(r, 0) else ""
@@ -103,7 +103,7 @@ class QuickCmdTab(QWidget):
         s.setValue("commands", json.dumps(items))
 
     def _load(self):
-        s = QSettings("esp-can-link", "QuickCmds")
+        s = QSettings("open-can-link", "QuickCmds")
         raw = s.value("commands", "")
         if not raw:
             return

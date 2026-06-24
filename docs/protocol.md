@@ -1,4 +1,4 @@
-# esp-can-link 通信协议
+# open-can-link 通信协议
 
 USB CDC 和 Wi-Fi 共用同一套 JSON 命令协议。
 
@@ -193,7 +193,7 @@ USB CDC 和 Wi-Fi 共用同一套 JSON 命令协议。
 ```json
 {
   "type": "info",
-  "firmware": "esp-can-link",
+  "firmware": "open-can-link",
   "version": "0.1.0",
   "hw": "ESP32-S3 + TJA1051T"
 }

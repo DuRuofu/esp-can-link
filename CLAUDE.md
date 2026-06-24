@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-**esp-can-link** — 基于 ESP32-S3 + TJA1051 的 USB / Wi-Fi 双通道 CAN 2.0 调试工具。
+**open-can-link** — 基于 ESP32-S3 / CH32V203 + TJA1051 的 USB-CAN 2.0 调试工具。
 
 目标：做一个开放、可编程、低成本的 CAN 调试接口，替代封闭的厂商 USB-CAN 模块。
 
@@ -72,7 +72,7 @@ uv run python main.py              # 启动
 ## 项目结构
 
 ```
-esp-can-link/
+open-can-link/
 ├── CLAUDE.md                     # 本文件
 ├── README.md                     # 项目说明
 ├── docs/                         # 文档

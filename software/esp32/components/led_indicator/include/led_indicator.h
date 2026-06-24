@@ -1,5 +1,5 @@
 /*
- * led_indicator.h - WS2812 status LED for esp-can-link
+ * led_indicator.h - WS2812 status LED for open-can-link
  *
  * Uses a single WS2812 LED on a configurable GPIO to show device state:
  *   Off    — not initialized / booting

@@ -1,5 +1,5 @@
 /*
- * usb_cdc.h - USB CDC ACM wrapper for esp-can-link
+ * usb_cdc.h - USB CDC ACM wrapper for open-can-link
  *
  * Provides a simplified, thread-safe API for USB CDC virtual serial port
  * communication using the TinyUSB stack.

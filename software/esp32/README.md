@@ -1,6 +1,6 @@
 # ESP32 固件
 
-esp-can-link 的 ESP32-S3 固件代码。
+open-can-link 的 ESP32-S3 固件代码。
 
 ## 目录结构
 

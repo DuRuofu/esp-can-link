@@ -197,7 +197,7 @@ int command_handler_get_status_json(char *out, size_t max_len)
 
 int command_handler_get_info_json(char *out, size_t max_len)
 {
-    return protocol_build_info("esp-can-link", "0.1.0",
+    return protocol_build_info("open-can-link", "0.1.0",
                                 "ESP32-S3+TJA1051", out, max_len);
 }
 

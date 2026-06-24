@@ -136,7 +136,7 @@ class FilterTab(QWidget):
         self._save()
 
     def _save(self):
-        s = QSettings("esp-can-link", "Filters")
+        s = QSettings("open-can-link", "Filters")
         items = []
         for r in range(self.table.rowCount()):
             items.append({
@@ -147,7 +147,7 @@ class FilterTab(QWidget):
         s.setValue("filters", json.dumps(items))
 
     def _load(self):
-        s = QSettings("esp-can-link", "Filters")
+        s = QSettings("open-can-link", "Filters")
         raw = s.value("filters", "")
         if not raw:
             return

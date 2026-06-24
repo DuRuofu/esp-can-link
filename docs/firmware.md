@@ -1,4 +1,4 @@
-# esp-can-link 固件开发指南
+# open-can-link 固件开发指南
 
 ## 环境准备
 

@@ -1,4 +1,4 @@
-"""esp-can-link PC 上位机"""
+"""open-can-link PC 上位机"""
 import sys, os, serial.tools.list_ports
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
@@ -10,7 +10,7 @@ from ui.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("esp-can-link")
+    app.setApplicationName("open-can-link")
 
     logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
     if os.path.exists(logo_path):

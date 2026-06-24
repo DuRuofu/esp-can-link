@@ -1,5 +1,5 @@
 /*
- * led_indicator.c - Minimal WS2812 status LED for esp-can-link
+ * led_indicator.c - Minimal WS2812 status LED for open-can-link
  *
  * Uses ESP32 RMT peripheral directly, no external component dependencies.
  * Drives a single WS2812 on GPIO21:

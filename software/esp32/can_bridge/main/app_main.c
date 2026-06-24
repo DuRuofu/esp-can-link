@@ -1,5 +1,5 @@
 /*
- * app_main.c - esp-can-link bridge firmware entry point
+ * app_main.c - open-can-link bridge firmware entry point
  *
  * USB CDC <=> CAN Bridge with JSON protocol.
  * Wire-up: USB CDC RX -> protocol parser -> command handler -> CAN driver
@@ -168,7 +168,7 @@ static void status_task_fn(void *arg)
 void app_main(void)
 {
     ESP_LOGI(TAG, "=============================================");
-    ESP_LOGI(TAG, "  esp-can-link Bridge Firmware v0.1.0");
+    ESP_LOGI(TAG, "  open-can-link Bridge Firmware v0.1.0");
     ESP_LOGI(TAG, "  HW: ESP32-S3 + TJA1051");
     ESP_LOGI(TAG, "  CAN: TX=GPIO%d, RX=GPIO%d, S=GPIO%d", CAN_TX_GPIO, CAN_RX_GPIO, CAN_STANDBY_GPIO);
     ESP_LOGI(TAG, "=============================================");

@@ -1,4 +1,4 @@
-# esp-can-link 快速上手指南
+# open-can-link 快速上手指南
 
 ## 准备工作
 
@@ -75,7 +75,7 @@ uv run python main.py
 
 预期响应:
 ```json
-{"type":"info","firmware":"esp-can-link","version":"0.1.0","hw":"ESP32-S3+TJA1051"}
+{"type":"info","firmware":"open-can-link","version":"0.1.0","hw":"ESP32-S3+TJA1051"}
 ```
 
 发送一个 CAN 帧:
