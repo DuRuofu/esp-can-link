@@ -9,5 +9,6 @@
 #include <stdio.h>
 
 void USART_Printf_Init(uint32_t baudrate);
+void Delay_Init(void);   /* from WCH SRC/Debug/debug.c */
 
 #endif

@@ -14,6 +14,7 @@
 
 #include "debug.h"
 #include "ch32v20x.h"
+#include <string.h>
 
 /* USB library */
 #include "usb_lib.h"

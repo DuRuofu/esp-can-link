@@ -2,17 +2,13 @@
  * can_driver.c - CAN1 driver implementation for CH32V203
  *
  * Uses WCH HAL: CAN_Init / CAN_Transmit / CAN_Receive / CAN_MessagePending
+ * Register names: CH32V20x uses STATR/ERRSR/BTIMR (not STM32 MSR/ESR/BTR).
  * Baudrate computed for APB1=72MHz: tq = (prescaler) / 72MHz
  * Bit time = (1 + BS1 + BS2) * tq
  */
 
 #include "can_driver.h"
 #include <string.h>
-
-/* ── ESR register bits (STM32-compatible layout) ── */
-#define CAN_ESR_EWGF  ((uint32_t)0x00000001)
-#define CAN_ESR_EPVF  ((uint32_t)0x00000002)
-#define CAN_ESR_BOFF  ((uint32_t)0x00000004)
 
 /* ── Internal state ── */
 
@@ -25,6 +21,8 @@ static GPIO_TypeDef *g_can_stb_port; /* GPIOB or GPIOA etc. */
 void can_driver_init(uint16_t tx_pin, uint16_t rx_pin, uint16_t stb_pin,
                      uint32_t bitrate)
 {
+    (void)bitrate; /* default 500k set via CAN_InitStruct */
+
     GPIO_InitTypeDef  gpio = {0};
     CAN_InitTypeDef   can  = {0};
     CAN_FilterInitTypeDef filt = {0};
@@ -57,7 +55,7 @@ void can_driver_init(uint16_t tx_pin, uint16_t rx_pin, uint16_t stb_pin,
     gpio.GPIO_Mode  = GPIO_Mode_Out_PP;
     gpio.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOB, &gpio);
-    GPIO_ResetBits(GPIOB, stb_pin);   /* LOW = 正常模式 (在停止状态下) */
+    GPIO_ResetBits(GPIOB, stb_pin);   /* LOW = normal mode */
 
     /* 2. CAN Controller Init (starts in init mode → stopped) */
     CAN_DeInit(CAN1);
@@ -98,7 +96,7 @@ void can_driver_start(void)
     CAN1->CTLR &= ~CAN_CTLR_INRQ;
     /* Wait for hardware to leave init mode */
     uint32_t timeout = 1000000;
-    while ((CAN1->MSR & CAN_MSR_INAK) && --timeout) { }
+    while ((CAN1->STATR & CAN_STATR_INAK) && --timeout) { }
 
     /* Take TJA1051 out of standby */
     GPIO_ResetBits(GPIOB, g_can_stb_pin);
@@ -110,7 +108,7 @@ void can_driver_stop(void)
     /* Request enter init mode */
     CAN1->CTLR |= CAN_CTLR_INRQ;
     uint32_t timeout = 1000000;
-    while (!(CAN1->MSR & CAN_MSR_INAK) && --timeout) { }
+    while (!(CAN1->STATR & CAN_STATR_INAK) && --timeout) { }
 
     /* Put TJA1051 in standby */
     GPIO_SetBits(GPIOB, g_can_stb_pin);
@@ -190,23 +188,23 @@ void can_driver_set_bitrate(uint32_t bitrate)
     switch (bitrate) {
     case 125000:
         prescaler = 36;       /* tq = 36/72M = 500ns, 16tq = 8μs → 125k */
-        bs1 = CAN_BS1_12tq;   /* 12 tq (6000ns) */
-        bs2 = CAN_BS2_3tq;    /* 3 tq (1500ns), sample at 81% */
+        bs1 = CAN_BS1_12tq;
+        bs2 = CAN_BS2_3tq;
         break;
     case 250000:
-        prescaler = 18;       /* tq = 250ns, 16tq = 4μs → 250k */
+        prescaler = 18;
         bs1 = CAN_BS1_12tq;
         bs2 = CAN_BS2_3tq;
         break;
     case 500000:
-        prescaler = 9;        /* tq = 125ns, 16tq = 2μs → 500k */
+        prescaler = 9;
         bs1 = CAN_BS1_12tq;
         bs2 = CAN_BS2_3tq;
         break;
     case 1000000:
-        prescaler = 9;        /* tq = 125ns, 8tq = 1μs → 1M */
-        bs1 = CAN_BS1_5tq;    /* 5 tq (625ns) */
-        bs2 = CAN_BS2_2tq;    /* 2 tq (250ns), sample at 75% */
+        prescaler = 9;
+        bs1 = CAN_BS1_5tq;
+        bs2 = CAN_BS2_2tq;
         break;
     default:
         return;
@@ -215,19 +213,19 @@ void can_driver_set_bitrate(uint32_t bitrate)
     /* Enter init mode */
     CAN1->CTLR |= CAN_CTLR_INRQ;
     uint32_t timeout = 1000000;
-    while (!(CAN1->MSR & CAN_MSR_INAK) && --timeout) { }
+    while (!(CAN1->STATR & CAN_STATR_INAK) && --timeout) { }
 
-    /* Write BTR register directly */
-    CAN1->BTR = ((uint32_t)CAN_Mode_Normal << 30) |
-                ((uint32_t)(bs2 & 0x07) << 20) |
-                ((uint32_t)(bs1 & 0x0F) << 16) |
-                ((uint32_t)CAN_SJW_1tq << 24) |
-                ((uint32_t)(prescaler & 0x3FF));
+    /* Write BTIMR (Bit Timing Register) directly */
+    CAN1->BTIMR = ((uint32_t)CAN_Mode_Normal << 30) |
+                  ((uint32_t)CAN_SJW_1tq << 24) |
+                  ((uint32_t)(bs2 & 0x07) << 20) |
+                  ((uint32_t)(bs1 & 0x0F) << 16) |
+                  ((uint32_t)(prescaler & 0x3FF));
 
     /* Leave init mode */
     CAN1->CTLR &= ~CAN_CTLR_INRQ;
     timeout = 1000000;
-    while ((CAN1->MSR & CAN_MSR_INAK) && --timeout) { }
+    while ((CAN1->STATR & CAN_STATR_INAK) && --timeout) { }
 }
 
 /* ── Filter ── */
@@ -237,20 +235,20 @@ void can_driver_set_filter(const can_filter_entry_t *filters, uint8_t count)
     /* Enter init mode for filter reconfiguration */
     CAN1->CTLR |= CAN_CTLR_INRQ;
     uint32_t timeout = 1000000;
-    while (!(CAN1->MSR & CAN_MSR_INAK) && --timeout) { }
+    while (!(CAN1->STATR & CAN_STATR_INAK) && --timeout) { }
 
     if (count == 0 || filters == NULL) {
         /* Set pass-all */
         CAN_FilterInitTypeDef f = {0};
-        f.CAN_FilterNumber = 0;
-        f.CAN_FilterMode   = CAN_FilterMode_IdMask;
-        f.CAN_FilterScale  = CAN_FilterScale_32bit;
-        f.CAN_FilterIdHigh = 0;
-        f.CAN_FilterIdLow  = 0;
-        f.CAN_FilterMaskIdHigh = 0;
-        f.CAN_FilterMaskIdLow  = 0;
+        f.CAN_FilterNumber         = 0;
+        f.CAN_FilterMode           = CAN_FilterMode_IdMask;
+        f.CAN_FilterScale          = CAN_FilterScale_32bit;
+        f.CAN_FilterIdHigh         = 0;
+        f.CAN_FilterIdLow          = 0;
+        f.CAN_FilterMaskIdHigh     = 0;
+        f.CAN_FilterMaskIdLow      = 0;
         f.CAN_FilterFIFOAssignment = CAN_Filter_FIFO0;
-        f.CAN_FilterActivation = ENABLE;
+        f.CAN_FilterActivation     = ENABLE;
         CAN_FilterInit(&f);
     } else {
         if (count > 14) count = 14;
@@ -261,7 +259,7 @@ void can_driver_set_filter(const can_filter_entry_t *filters, uint8_t count)
             f.CAN_FilterMode   = CAN_FilterMode_IdMask;
             f.CAN_FilterScale  = CAN_FilterScale_32bit;
             f.CAN_FilterFIFOAssignment = CAN_Filter_FIFO0;
-            f.CAN_FilterActivation = ENABLE;
+            f.CAN_FilterActivation     = ENABLE;
 
             if (filters[i].ext) {
                 /* Extended ID: 29 bits packed in WCH format */
@@ -284,19 +282,18 @@ void can_driver_set_filter(const can_filter_entry_t *filters, uint8_t count)
     /* Leave init mode */
     CAN1->CTLR &= ~CAN_CTLR_INRQ;
     timeout = 1000000;
-    while ((CAN1->MSR & CAN_MSR_INAK) && --timeout) { }
+    while ((CAN1->STATR & CAN_STATR_INAK) && --timeout) { }
 }
 
 /* ── Status ── */
 
 void can_driver_get_status(can_status_t *status)
 {
-    uint32_t esr = CAN1->ESR;
+    /* Use WCH API functions for error counters */
+    status->tx_errors = CAN_GetLSBTransmitErrorCounter(CAN1);
+    status->rx_errors = CAN_GetReceiveErrorCounter(CAN1);
 
-    status->tx_errors = (uint8_t)((esr >> 16) & 0xFF);
-    status->rx_errors = (uint8_t)((esr >> 24) & 0xFF);
-
-    if (esr & CAN_ESR_BOFF) {
+    if (CAN_GetFlagStatus(CAN1, CAN_FLAG_BOF) == SET) {
         status->state   = CAN_STATE_BUS_OFF;
         status->bus_off = true;
         g_can_state     = CAN_STATE_BUS_OFF;
